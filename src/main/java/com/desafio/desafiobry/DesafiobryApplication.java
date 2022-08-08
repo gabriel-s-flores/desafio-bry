@@ -49,12 +49,16 @@ public class DesafiobryApplication {
 			CMSException {
 		SpringApplication.run(DesafiobryApplication.class, args);
 
+		
+		//add Bouncy Castle as a Security Provider
 		Security.addProvider(new BouncyCastleProvider());
-
+		
+		//getting the certificate and text file as an inputstream
 		final InputStream doc = DesafiobryApplication.class.getClassLoader().getResourceAsStream("arquivos/doc.txt");
 		final InputStream cert = DesafiobryApplication.class.getClassLoader()
 				.getResourceAsStream("pkcs12/Desafio Estagio Java.p12");
-
+		
+		//Step 1 getting the hash sha-256 algorithm
 		String txt = IOUtils.toString(doc, "utf8");
 
 		System.out.println(txt);
@@ -66,7 +70,9 @@ public class DesafiobryApplication {
 		String sha256 = new String(Hex.encode(hash));
 
 		System.out.println(sha256);
+		
 
+		//Step 2 Signing the doc.txt file
 		String alias = "f22c0321-1a9a-4877-9295-73092bb9aa94";
 		String password = "123456789";
 
@@ -93,9 +99,9 @@ public class DesafiobryApplication {
 		byte[] signedDocument = signeddata.getEncoded();
 
 		FileUtils.writeByteArrayToFile(Paths.get("output", "signedtxt.p7s").toFile(), signedDocument);
+		
 
-		System.out.println(signedDocument);
-
+		//Step 3 Verifying signature
 		Store<?> store = signeddata.getCertificates();
 		SignerInformationStore signers = signeddata.getSignerInfos();
 		Collection<?> c = signers.getSigners();
