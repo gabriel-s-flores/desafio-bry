@@ -81,24 +81,16 @@ public class DesafiobryApplication {
 		PrivateKey key = (PrivateKey) keystore.getKey(alias,
 				password.toCharArray());
 
-		Certificate[] certchain = (Certificate[]) keystore.getCertificateChain(alias);
-        final List<Certificate> certlist = new ArrayList<Certificate>();
-
-		for (int i = 0, length = certchain == null ? 0 : certchain.length; i < length; i++) {
-            certlist.add(certchain[i]);
-        }
-
-        Store<?> certstore = new JcaCertStore(certlist);
         Certificate certificate = keystore.getCertificate(alias);
 
-		ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").setProvider("BC").build(key);
+		ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSAEncryption").setProvider("BC").build(key);
 
 		CMSSignedDataGenerator generator = new CMSSignedDataGenerator();
 
 		generator.addSignerInfoGenerator(new JcaSignerInfoGeneratorBuilder(new JcaDigestCalculatorProviderBuilder().setProvider("BC").
                 build()).build(signer, (X509Certificate) certificate));
 				
-		generator.addCertificates(certstore);
+		generator.addCertificate(new X509CertificateHolder(certificate.getEncoded()));
 
 		CMSTypedData cmsdata = new CMSProcessableByteArray(txt.getBytes());
 		CMSSignedData signeddata = generator.generate(cmsdata, true);
@@ -129,6 +121,8 @@ public class DesafiobryApplication {
 			}catch(Exception e){
 				System.out.println("Invalid Certificate");
 			}
+
+
         }
 		
 
