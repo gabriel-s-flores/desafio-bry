@@ -39,67 +39,70 @@ import org.springframework.web.multipart.MultipartFile;
 public class DesafioController {
 
     @PostMapping("/verify")
-    String verify(@RequestParam("doc") MultipartFile doc) throws OperatorCreationException, CMSException, IOException, CertificateException{
+    String verify(@RequestParam("doc") MultipartFile doc)
+            throws OperatorCreationException, CMSException, IOException, CertificateException {
 
-        CMSSignedDataParser work = new CMSSignedDataParser(new JcaDigestCalculatorProviderBuilder().setProvider("BC").
-        build(), doc.getInputStream());
+        CMSSignedDataParser work = new CMSSignedDataParser(
+                new JcaDigestCalculatorProviderBuilder().setProvider("BC").build(), doc.getInputStream());
 
         work.getSignedContent().drain();
-        Store<?> store = work.getCertificates(); 
-        SignerInformationStore signers = work.getSignerInfos(); 
-        Collection<?> c = signers.getSigners(); 
+        Store<?> store = work.getCertificates();
+        SignerInformationStore signers = work.getSignerInfos();
+        Collection<?> c = signers.getSigners();
         Iterator<?> it = c.iterator();
-        while (it.hasNext()) { 
-            SignerInformation sig = (SignerInformation)it.next(); 
-            Collection<?> certCollection = store.getMatches(sig.getSID()); 
+        while (it.hasNext()) {
+            SignerInformation sig = (SignerInformation) it.next();
+            Collection<?> certCollection = store.getMatches(sig.getSID());
             Iterator<?> certIt = certCollection.iterator();
             X509CertificateHolder certHolder = (X509CertificateHolder) certIt.next();
-            X509Certificate certFromSignedData = new JcaX509CertificateConverter().setProvider("BC").getCertificate(certHolder);
-            try{
-			if (sig.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider("BC").build(certFromSignedData))) {
-                System.out.println("Signature verified");
-            } else {
-                System.out.println("Signature verification failed");
+            X509Certificate certFromSignedData = new JcaX509CertificateConverter().setProvider("BC")
+                    .getCertificate(certHolder);
+            try {
+                if (sig.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider("BC").build(certFromSignedData))) {
+                    System.out.println("Signature verified");
+                } else {
+                    System.out.println("Signature verification failed");
+                    return "INVALIDO";
+                }
+            } catch (Exception e) {
+                System.out.println("Invalid Certificate");
                 return "INVALIDO";
             }
-			}catch(Exception e){
-				System.out.println("Invalid Certificate");
-                return "INVALIDO";
-			}
         }
-        
+
         return "VALIDO";
     }
 
     @PostMapping("/signature")
-    String signature(@RequestParam("txt") MultipartFile txt, @RequestParam("sig")MultipartFile sig, @RequestParam("password") String password) throws UnrecoverableKeyException, KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, OperatorCreationException, CMSException{
+    String signature(@RequestParam("txt") MultipartFile txt, @RequestParam("sig") MultipartFile sig,
+            @RequestParam("password") String password) throws UnrecoverableKeyException, KeyStoreException,
+            NoSuchAlgorithmException, CertificateException, IOException, OperatorCreationException, CMSException {
         String alias = "f22c0321-1a9a-4877-9295-73092bb9aa94";
 
-		KeyStore keystore = KeyStore.getInstance("PKCS12");
-		keystore.load(sig.getInputStream(), password.toCharArray());
-		PrivateKey key = (PrivateKey) keystore.getKey(alias,
-				password.toCharArray());
+        KeyStore keystore = KeyStore.getInstance("PKCS12");
+        keystore.load(sig.getInputStream(), password.toCharArray());
+        PrivateKey key = (PrivateKey) keystore.getKey(alias,
+                password.toCharArray());
 
         Certificate certificate = keystore.getCertificate(alias);
 
-		ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSAEncryption").setProvider("BC").build(key);
+        ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSAEncryption").setProvider("BC").build(key);
 
-		CMSSignedDataGenerator generator = new CMSSignedDataGenerator();
+        CMSSignedDataGenerator generator = new CMSSignedDataGenerator();
 
-		generator.addSignerInfoGenerator(new JcaSignerInfoGeneratorBuilder(new JcaDigestCalculatorProviderBuilder().setProvider("BC").
-                build()).build(signer, (X509Certificate) certificate));
-				
-		generator.addCertificate(new X509CertificateHolder(certificate.getEncoded()));
+        generator.addSignerInfoGenerator(
+                new JcaSignerInfoGeneratorBuilder(new JcaDigestCalculatorProviderBuilder().setProvider("BC").build())
+                        .build(signer, (X509Certificate) certificate));
 
-		CMSTypedData cmsdata = new CMSProcessableByteArray(txt.getBytes());
-		CMSSignedData signeddata = generator.generate(cmsdata, true);
+        generator.addCertificate(new X509CertificateHolder(certificate.getEncoded()));
 
-		byte[] signedDocument = signeddata.getEncoded();
+        CMSTypedData cmsdata = new CMSProcessableByteArray(txt.getBytes());
+        CMSSignedData signeddata = generator.generate(cmsdata, true);
 
-        
+        byte[] signedDocument = signeddata.getEncoded();
+
         return Base64.getEncoder().encodeToString(signedDocument);
 
-        
     }
 
 }

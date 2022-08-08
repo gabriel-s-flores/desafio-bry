@@ -1,6 +1,5 @@
 package com.desafio.desafiobry;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -15,17 +14,13 @@ import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaCertStore;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSProcessableByteArray;
@@ -34,7 +29,6 @@ import org.bouncycastle.cms.CMSSignedDataGenerator;
 import org.bouncycastle.cms.CMSTypedData;
 import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationStore;
-import org.bouncycastle.cms.SignerInformationVerifier;
 import org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -51,7 +45,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class DesafiobryApplication {
 
 	public static void main(String[] args) throws IOException, NoSuchAlgorithmException, NoSuchProviderException,
-			KeyStoreException, CertificateException, UnrecoverableKeyException, OperatorCreationException, CMSException {
+			KeyStoreException, CertificateException, UnrecoverableKeyException, OperatorCreationException,
+			CMSException {
 		SpringApplication.run(DesafiobryApplication.class, args);
 
 		Security.addProvider(new BouncyCastleProvider());
@@ -72,7 +67,6 @@ public class DesafiobryApplication {
 
 		System.out.println(sha256);
 
-
 		String alias = "f22c0321-1a9a-4877-9295-73092bb9aa94";
 		String password = "123456789";
 
@@ -81,15 +75,16 @@ public class DesafiobryApplication {
 		PrivateKey key = (PrivateKey) keystore.getKey(alias,
 				password.toCharArray());
 
-        Certificate certificate = keystore.getCertificate(alias);
+		Certificate certificate = keystore.getCertificate(alias);
 
 		ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSAEncryption").setProvider("BC").build(key);
 
 		CMSSignedDataGenerator generator = new CMSSignedDataGenerator();
 
-		generator.addSignerInfoGenerator(new JcaSignerInfoGeneratorBuilder(new JcaDigestCalculatorProviderBuilder().setProvider("BC").
-                build()).build(signer, (X509Certificate) certificate));
-				
+		generator.addSignerInfoGenerator(
+				new JcaSignerInfoGeneratorBuilder(new JcaDigestCalculatorProviderBuilder().setProvider("BC").build())
+						.build(signer, (X509Certificate) certificate));
+
 		generator.addCertificate(new X509CertificateHolder(certificate.getEncoded()));
 
 		CMSTypedData cmsdata = new CMSProcessableByteArray(txt.getBytes());
@@ -101,34 +96,28 @@ public class DesafiobryApplication {
 
 		System.out.println(signedDocument);
 
-
-		Store<?> store = signeddata.getCertificates(); 
-        SignerInformationStore signers = signeddata.getSignerInfos(); 
-        Collection<?> c = signers.getSigners(); 
-        Iterator<?> it = c.iterator();
-        while (it.hasNext()) { 
-            SignerInformation sig = (SignerInformation)it.next(); 
-            Collection<?> certCollection = store.getMatches(sig.getSID()); 
-            Iterator<?> certIt = certCollection.iterator();
-            X509CertificateHolder certHolder = (X509CertificateHolder) certIt.next();
-            X509Certificate certFromSignedData = new JcaX509CertificateConverter().setProvider("BC").getCertificate(certHolder);
-            try{
-			if (sig.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider("BC").build(certFromSignedData))) {
-                System.out.println("Signature verified");
-            } else {
-                System.out.println("Signature verification failed");
-            }
-			}catch(Exception e){
+		Store<?> store = signeddata.getCertificates();
+		SignerInformationStore signers = signeddata.getSignerInfos();
+		Collection<?> c = signers.getSigners();
+		Iterator<?> it = c.iterator();
+		while (it.hasNext()) {
+			SignerInformation sig = (SignerInformation) it.next();
+			Collection<?> certCollection = store.getMatches(sig.getSID());
+			Iterator<?> certIt = certCollection.iterator();
+			X509CertificateHolder certHolder = (X509CertificateHolder) certIt.next();
+			X509Certificate certFromSignedData = new JcaX509CertificateConverter().setProvider("BC")
+					.getCertificate(certHolder);
+			try {
+				if (sig.verify(new JcaSimpleSignerInfoVerifierBuilder().setProvider("BC").build(certFromSignedData))) {
+					System.out.println("Signature verified");
+				} else {
+					System.out.println("Signature verification failed");
+				}
+			} catch (Exception e) {
 				System.out.println("Invalid Certificate");
 			}
 
-
-        }
-		
-
-
-		
-
+		}
 
 	}
 
